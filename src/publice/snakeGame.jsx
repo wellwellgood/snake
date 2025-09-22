@@ -33,6 +33,7 @@ export default function SnakeGame() {
   const rafRef = useRef(0);
   const lastTickRef = useRef(0);
   const dprRef = useRef(Math.min(2, window.devicePixelRatio || 1));
+  const scrollYRef = useRef(0);
 
   const [running, setRunning] = useState(true);
   const [tickMs, setTickMs] = useState(TICK_MS_DEFAULT);
@@ -70,6 +71,39 @@ export default function SnakeGame() {
       window.removeEventListener("orientationchange", fit);
     };
   }, []);
+
+  scrollYRef.current = window.scrollY || 0;
+    const b = document.body;
+    b.style.position = "fixed";
+    b.style.top = `-${scrollYRef.current}px`;
+    b.style.left = "0";
+    b.style.right = "0";
+    b.style.width = "100%";
+    b.style.overflow = "hidden";
+    useEffect(() => {
+      // lock
+      scrollYRef.current = window.scrollY || 0;
+      const b = document.body;
+      b.style.position = "fixed";
+      b.style.top = `-${scrollYRef.current}px`;
+      b.style.left = "0";
+      b.style.right = "0";
+      b.style.width = "100%";
+      b.style.overflow = "hidden";
+  
+      return () => {
+        // unlock
+        const y = scrollYRef.current;
+        const b = document.body;
+        b.style.position = "";
+        b.style.top = "";
+        b.style.left = "";
+        b.style.right = "";
+        b.style.width = "";
+        b.style.overflow = "";
+        window.scrollTo(0, y);
+      };
+    }, []);
 
   const cellSize = size.cell;
   const width = size.w;
