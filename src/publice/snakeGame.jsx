@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 
 // Drop-in React component. No deps. Canvas-based. Keyboard + swipe.
 // Works in CRA, Vite, Next (use client). Export default below.
@@ -23,10 +23,10 @@ function randomFood(snake) {
   }
 }
 
-function clampDir([dx, dy]) {
+// function clampDir([dx, dy]) {
   // normalize to -1,0,1
-  return [Math.sign(dx), Math.sign(dy)];
-}
+  // return [Math.sign(dx), Math.sign(dy)];
+// }
 
 export default function SnakeGame() {
   const canvasRef = useRef(null);
