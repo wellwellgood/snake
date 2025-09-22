@@ -1,5 +1,6 @@
 // src/snakeGame.jsx
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import Styles from './snakeGame.module.css';
 
 const COLS = 22;
 const ROWS = 22;
@@ -261,6 +262,7 @@ export default function SnakeGame() {
 
   return (
     <div
+    className={Styles.snakeGame}
       style={{
         width: "100%",
         minHeight: "100dvh",
