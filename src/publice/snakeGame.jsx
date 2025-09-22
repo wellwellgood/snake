@@ -217,11 +217,11 @@ export default function SnakeGame() {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     // 배경
-    ctx.fillStyle = "#0b1020";
+    ctx.fillStyle = "#02017F";
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
     // 그리드
-    ctx.strokeStyle = "#101a3a";
+    ctx.strokeStyle = "#02017F";
     ctx.lineWidth = 1;
     for (let x = 0; x <= COLS; x++) {
       ctx.beginPath();
@@ -239,19 +239,19 @@ export default function SnakeGame() {
     // 스네이크
     for (let i = 0; i < snake.length; i++) {
       const s = snake[i];
-      const isHead = i === snake.length - 1;
-      ctx.fillStyle = isHead ? "#7dd3fc" : "#38bdf8";
-      const pad = isHead ? 2 : 3;
+      const isHead = i === snake.length ;
+      ctx.fillStyle = isHead ? "#E9F711" : "#E9F711";
+      const pad = isHead ? 1 : 1;
       ctx.fillRect(
         s.x * CELL_SIZE + pad,
         s.y * CELL_SIZE + pad,
-        CELL_SIZE - pad * 2,
-        CELL_SIZE - pad * 2
+        CELL_SIZE - pad * 1,
+        CELL_SIZE - pad * 1
       );
     }
 
     // 먹이
-    ctx.fillStyle = "#f87171";
+    ctx.fillStyle = "#E9F711";
     const r = Math.floor(CELL_SIZE / 2) - 4;
     const cx = food.x * CELL_SIZE + CELL_SIZE / 2;
     const cy = food.y * CELL_SIZE + CELL_SIZE / 2;
@@ -287,6 +287,7 @@ export default function SnakeGame() {
           position: "relative",
           boxShadow: "0 10px 30px rgba(0,0,0,0.35)",
           borderRadius: 12,
+          border:"1px solid #ffffff"
         }}
       >
         <canvas
@@ -329,10 +330,6 @@ export default function SnakeGame() {
         <button onClick={() => setTickMs(ms => Math.max(60, ms - 10))} style={btnStyle}>Faster</button>
         <button onClick={() => setTickMs(ms => Math.min(300, ms + 10))} style={btnStyle}>Slower</button>
       </div>
-
-      <p style={{ fontSize: 12, opacity: 0.7 }}>
-        Controls: Arrow/WASD, Space=pause, Enter=restart. Swipe on mobile.
-      </p>
     </div>
   );
 }
