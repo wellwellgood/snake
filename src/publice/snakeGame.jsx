@@ -1,20 +1,12 @@
+// src/snakeGame.jsx
 import React, { useCallback, useEffect, useRef, useState } from "react";
-
-// Drop-in React component. No deps. Canvas-based. Keyboard + swipe.
-// Works in CRA, Vite, Next (use client). Export default below.
 
 const COLS = 22;
 const ROWS = 22;
-const TICK_MS_DEFAULT = 120; // lower = faster
+const TICK_MS_DEFAULT = 120;
 
-function randCell(max) {
-  return Math.floor(Math.random() * max);
-}
-
-function same(a, b) {
-  return a.x === b.x && a.y === b.y;
-}
-
+function randCell(max) { return Math.floor(Math.random() * max); }
+function same(a, b) { return a.x === b.x && a.y === b.y; }
 function randomFood(snake) {
   while (true) {
     const f = { x: randCell(COLS), y: randCell(ROWS) };
@@ -22,89 +14,40 @@ function randomFood(snake) {
   }
 }
 
-// function clampDir([dx, dy]) {
-  // normalize to -1,0,1
-  // return [Math.sign(dx), Math.sign(dy)];
-// }
-
 export default function SnakeGame() {
   const canvasRef = useRef(null);
   const rafRef = useRef(0);
   const lastTickRef = useRef(0);
-  const dprRef = useRef(Math.min(2, window.devicePixelRatio || 1));
+  const dprRef = useRef(Math.min(2, typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1));
   const scrollYRef = useRef(0);
 
+  // 반응형 셀 크기
+  const [size, setSize] = useState(() => {
+    const S = Math.floor(Math.min(window.innerWidth, window.innerHeight) * 0.9);
+    const cell = Math.max(12, Math.floor(S / COLS));
+    return { cell, w: COLS * cell, h: ROWS * cell };
+  });
+  const CELL_SIZE = size.cell;
+  const WIDTH = size.w;
+  const HEIGHT = size.h;
+
+  // 상태
   const [running, setRunning] = useState(true);
   const [tickMs, setTickMs] = useState(TICK_MS_DEFAULT);
-  const [dir, setDir] = useState({ x: 1, y: 0 }); // start right
+  const [dir, setDir] = useState({ x: 1, y: 0 });
   const [snake, setSnake] = useState(() => {
     const mid = Math.floor(COLS / 2);
-    return [
-      { x: mid - 1, y: mid },
-      { x: mid, y: mid },
-      { x: mid + 1, y: mid },
-    ];
+    return [{ x: mid - 1, y: mid }, { x: mid, y: mid }, { x: mid + 1, y: mid }];
   });
   const [food, setFood] = useState(() => randomFood([]));
   const [score, setScore] = useState(0);
   const [best, setBest] = useState(() => Number(localStorage.getItem("snake_best") || 0));
   const [gameOver, setGameOver] = useState(false);
 
-  const [size, setSize] = useState(() => {
-    const S = Math.floor(Math.min(window.innerWidth, window.innerHeight) * 0.9);
-    const cell = Math.max(12, Math.floor(S / COLS)); // 너무 작아지는 것 방지
-    return { cell, w: COLS * cell, h: ROWS * cell };
-  });
-
-  useEffect(() => {
-    function fit() {
-      const S = Math.floor(Math.min(window.innerWidth, window.innerHeight) * 0.9);
-      const cell = Math.max(12, Math.floor(S / COLS));
-      setSize({ cell, w: COLS * cell, h: ROWS * cell });
-    }
-    fit();
-    window.addEventListener("resize", fit);
-    window.addEventListener("orientationchange", fit);
-    return () => {
-      window.removeEventListener("resize", fit);
-      window.removeEventListener("orientationchange", fit);
-    };
-  }, []);
-
-  scrollYRef.current = window.scrollY || 0;
-    const b = document.body;
-    b.style.position = "fixed";
-    b.style.top = `-${scrollYRef.current}px`;
-    b.style.left = "0";
-    b.style.right = "0";
-    b.style.width = "100%";
-    b.style.overflow = "hidden";
-    useEffect(() => {
-      return () => {
-        // unlock
-        const y = scrollYRef.current;
-        const b = document.body;
-        b.style.position = "";
-        b.style.top = "";
-        b.style.left = "";
-        b.style.right = "";
-        b.style.width = "";
-        b.style.overflow = "";
-        window.scrollTo(0, y);
-      };
-    }, []);
-
-  const CELL_SIZE = size.cell;
-  const width = size.w;
-  const height = size.h;
-
+  // 리셋
   const reset = useCallback(() => {
     const mid = Math.floor(COLS / 2);
-    setSnake([
-      { x: mid - 1, y: mid },
-      { x: mid, y: mid },
-      { x: mid + 1, y: mid },
-    ]);
+    setSnake([{ x: mid - 1, y: mid }, { x: mid, y: mid }, { x: mid + 1, y: mid }]);
     setDir({ x: 1, y: 0 });
     setFood(randomFood([]));
     setScore(0);
@@ -113,46 +56,79 @@ export default function SnakeGame() {
     setRunning(true);
   }, []);
 
-  // Input: keyboard
+  // 반응형 리스너
+  useEffect(() => {
+    function fit() {
+      const S = Math.floor(Math.min(window.innerWidth, window.innerHeight) * 0.9);
+      const cell = Math.max(12, Math.floor(S / COLS));
+      setSize({ cell, w: COLS * cell, h: ROWS * cell });
+      dprRef.current = Math.min(2, window.devicePixelRatio || 1);
+    }
+    window.addEventListener("resize", fit);
+    window.addEventListener("orientationchange", fit);
+    fit();
+    return () => {
+      window.removeEventListener("resize", fit);
+      window.removeEventListener("orientationchange", fit);
+    };
+  }, []);
+
+  // 스크롤 잠금
+  useEffect(() => {
+    scrollYRef.current = window.scrollY || 0;
+    const b = document.body;
+    b.style.position = "fixed";
+    b.style.top = `-${scrollYRef.current}px`;
+    b.style.left = "0";
+    b.style.right = "0";
+    b.style.width = "100%";
+    b.style.overflow = "hidden";
+    return () => {
+      const y = scrollYRef.current;
+      b.style.position = "";
+      b.style.top = "";
+      b.style.left = "";
+      b.style.right = "";
+      b.style.width = "";
+      b.style.overflow = "";
+      window.scrollTo(0, y);
+    };
+  }, []);
+
+  // 키보드 입력
   useEffect(() => {
     function onKey(e) {
       const k = e.key.toLowerCase();
-      if (k === " " || k === "enter") {
-        if (gameOver) reset();
-        else setRunning((r) => !r);
-        return;
-      }
+      if (k === " " || k === "enter") { if (gameOver) reset(); else setRunning(r => !r); return; }
       if (!running) return;
-      if (k === "arrowup" || k === "w") return setDir((d) => (d.y === 1 ? d : { x: 0, y: -1 }));
-      if (k === "arrowdown" || k === "s") return setDir((d) => (d.y === -1 ? d : { x: 0, y: 1 }));
-      if (k === "arrowleft" || k === "a") return setDir((d) => (d.x === 1 ? d : { x: -1, y: 0 }));
-      if (k === "arrowright" || k === "d") return setDir((d) => (d.x === -1 ? d : { x: 1, y: 0 }));
+      if (k === "arrowup" || k === "w") return setDir(d => (d.y === 1 ? d : { x: 0, y: -1 }));
+      if (k === "arrowdown" || k === "s") return setDir(d => (d.y === -1 ? d : { x: 0, y: 1 }));
+      if (k === "arrowleft" || k === "a") return setDir(d => (d.x === 1 ? d : { x: -1, y: 0 }));
+      if (k === "arrowright" || k === "d") return setDir(d => (d.x === -1 ? d : { x: 1, y: 0 }));
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [running, reset, gameOver]);
 
-  // Input: swipe
+  // 스와이프 터치
   useEffect(() => {
     const el = canvasRef.current;
     if (!el) return;
     let sx = 0, sy = 0;
     function start(ev) {
-      const t = ev.touches?.[0];
-      if (!t) return;
+      const t = ev.touches?.[0]; if (!t) return;
       sx = t.clientX; sy = t.clientY;
     }
     function move(ev) {
       if (!running) return;
-      const t = ev.touches?.[0];
-      if (!t) return;
+      const t = ev.touches?.[0]; if (!t) return;
       const dx = t.clientX - sx;
       const dy = t.clientY - sy;
-      if (Math.abs(dx) + Math.abs(dy) < 18) return; // dead zone
+      if (Math.abs(dx) + Math.abs(dy) < 18) return;
       if (Math.abs(dx) > Math.abs(dy)) {
-        setDir((d) => (dx > 0 ? (d.x === -1 ? d : { x: 1, y: 0 }) : (d.x === 1 ? d : { x: -1, y: 0 })));
+        setDir(d => (dx > 0 ? (d.x === -1 ? d : { x: 1, y: 0 }) : (d.x === 1 ? d : { x: -1, y: 0 })));
       } else {
-        setDir((d) => (dy > 0 ? (d.y === -1 ? d : { x: 0, y: 1 }) : (d.y === 1 ? d : { x: 0, y: -1 })));
+        setDir(d => (dy > 0 ? (d.y === -1 ? d : { x: 0, y: 1 }) : (d.y === 1 ? d : { x: 0, y: -1 })));
       }
       sx = t.clientX; sy = t.clientY;
     }
@@ -164,18 +140,16 @@ export default function SnakeGame() {
     };
   }, [running]);
 
-  // Game tick
+  // 한 틱 진행
   const step = useCallback(() => {
-    setSnake((prev) => {
+    setSnake(prev => {
       const head = prev[prev.length - 1];
-      const nx = head.x + dir.x;
-      const ny = head.y + dir.y;
+      const nx = head.x + dir.x, ny = head.y + dir.y;
 
-      // wall or self collision => game over
-      if (nx < 0 || ny < 0 || nx >= COLS || ny >= ROWS || prev.some((p) => p.x === nx && p.y === ny)) {
-        setGameOver(true);
-        setRunning(false);
-        setBest((b) => {
+      // 충돌
+      if (nx < 0 || ny < 0 || nx >= COLS || ny >= ROWS || prev.some(p => p.x === nx && p.y === ny)) {
+        setGameOver(true); setRunning(false);
+        setBest(b => {
           const nb = Math.max(b, score);
           localStorage.setItem("snake_best", String(nb));
           return nb;
@@ -185,22 +159,22 @@ export default function SnakeGame() {
 
       const next = [...prev, { x: nx, y: ny }];
 
+      // 먹이
       if (nx === food.x && ny === food.y) {
-        // grow
-        setScore((s) => s + 1);
+        const newScore = score + 1;
+        setScore(newScore);
         setFood(randomFood(next));
-        // subtle speed up every 4 points
-        setTickMs((ms) => ( ( (score + 1) % 4 === 0 && ms > 60) ? ms - 6 : ms));
+        setTickMs(ms => (((newScore) % 4 === 0 && ms > 60) ? ms - 6 : ms));
         return next;
       }
 
-      // move
+      // 이동
       next.shift();
       return next;
     });
   }, [dir, food, score]);
 
-  // RAF loop throttled to tickMs
+  // 루프
   const loop = useCallback((t) => {
     if (!running || gameOver) return;
     if (t - lastTickRef.current >= tickMs) {
@@ -216,115 +190,156 @@ export default function SnakeGame() {
     return () => cancelAnimationFrame(rafRef.current);
   }, [loop]);
 
-  // Pause on tab hidden
+  // 탭 비가시성 시 일시정지
   useEffect(() => {
-    function vis() {
-      if (document.hidden) setRunning(false);
-    }
+    function vis() { if (document.hidden) setRunning(false); }
     document.addEventListener("visibilitychange", vis);
     return () => document.removeEventListener("visibilitychange", vis);
   }, []);
 
-  // Draw
+  // 그리기
   useEffect(() => {
     const c = canvasRef.current;
     const ctx = c?.getContext("2d");
     if (!ctx) return;
 
+    // DPR 스케일링
     const dpr = dprRef.current;
-    if (c.width !== width * dpr || c.height !== height * dpr) {
-      c.width = width * dpr;
-      c.height = height * dpr;
-      c.style.width = `${width}px`;
-      c.style.height = `${height}px`;
+    const bw = Math.floor(WIDTH * dpr);
+    const bh = Math.floor(HEIGHT * dpr);
+    if (c.width !== bw || c.height !== bh) {
+      c.width = bw;
+      c.height = bh;
+      c.style.width = `${WIDTH}px`;
+      c.style.height = `${HEIGHT}px`;
     }
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    // background
+    // 배경
     ctx.fillStyle = "#0b1020";
-    ctx.fillRect(0, 0, width, height);
+    ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
-    // grid glow
+    // 그리드
     ctx.strokeStyle = "#101a3a";
     ctx.lineWidth = 1;
     for (let x = 0; x <= COLS; x++) {
       ctx.beginPath();
-      ctx.moveTo(x * cellSize + 0.5, 0);
-      ctx.lineTo(x * cellSize + 0.5, height);
+      ctx.moveTo(x * CELL_SIZE + 0.5, 0);
+      ctx.lineTo(x * CELL_SIZE + 0.5, HEIGHT);
       ctx.stroke();
     }
     for (let y = 0; y <= ROWS; y++) {
       ctx.beginPath();
-      ctx.moveTo(0, y * cellSize + 0.5);
-      ctx.lineTo(width, y * cellSize + 0.5);
+      ctx.moveTo(0, y * CELL_SIZE + 0.5);
+      ctx.lineTo(WIDTH, y * CELL_SIZE + 0.5);
       ctx.stroke();
     }
 
-    // snake
+    // 스네이크
     for (let i = 0; i < snake.length; i++) {
       const s = snake[i];
       const isHead = i === snake.length - 1;
-      ctx.fillStyle = isHead ? "#7dd3fc" : "#38bdf8"; // head lighter
+      ctx.fillStyle = isHead ? "#7dd3fc" : "#38bdf8";
       const pad = isHead ? 2 : 3;
-      ctx.fillRect(s.x * cellSize + pad, s.y * cellSize + pad, cellSize - pad * 2, cellSize - pad * 2);
+      ctx.fillRect(
+        s.x * CELL_SIZE + pad,
+        s.y * CELL_SIZE + pad,
+        CELL_SIZE - pad * 2,
+        CELL_SIZE - pad * 2
+      );
     }
 
-    // food
+    // 먹이
     ctx.fillStyle = "#f87171";
-    const r = Math.floor(cellSize / 2) - 4;
-    const cx = food.x * cellSize + cellSize / 2;
-    const cy = food.y * cellSize + cellSize / 2;
+    const r = Math.floor(CELL_SIZE / 2) - 4;
+    const cx = food.x * CELL_SIZE + CELL_SIZE / 2;
+    const cy = food.y * CELL_SIZE + CELL_SIZE / 2;
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI * 2);
     ctx.fill();
-  }, [snake, food, cellSize, width, height]);
+  }, [snake, food, CELL_SIZE, WIDTH, HEIGHT]);
 
   return (
-    <div className="w-full min-h-[100dvh] flex flex-col items-center justify-center gap-3 p-4 select-none">
-      <h1 className="text-xl font-semibold tracking-tight">Snake</h1>
-      <div className="flex items-center gap-3 text-sm">
+    <div
+      style={{
+        width: "100%",
+        minHeight: "100dvh",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 12,
+        padding: 16,
+        userSelect: "none",
+      }}
+    >
+      <h1 style={{ fontSize: 18, fontWeight: 600 }}>Snake</h1>
+      <div style={{ display: "flex", gap: 12, fontSize: 13 }}>
         <span>Score: <b>{score}</b></span>
         <span>Best: <b>{best}</b></span>
         <span>Speed: <b>{Math.round(1000 / tickMs)} fps</b></span>
       </div>
 
-      <div className="relative" style={{ boxShadow: "0 10px 30px rgba(0,0,0,0.35)", borderRadius: 12 }}>
+      <div
+        style={{
+          position: "relative",
+          boxShadow: "0 10px 30px rgba(0,0,0,0.35)",
+          borderRadius: 12,
+        }}
+      >
         <canvas
           ref={canvasRef}
-          width={width}
-          height={height}
-          className="bg-[#0b1020] rounded-2xl touch-none"
-          style={{ imageRendering: "pixelated" }}
+          style={{ background: "#0b1020", borderRadius: 16, imageRendering: "pixelated", touchAction: "none" }}
         />
 
-        {/* Overlay UI */}
-        <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+        {/* 오버레이 */}
+        <div
+          style={{
+            position: "absolute", inset: 0, pointerEvents: "none",
+            display: "flex", alignItems: "center", justifyContent: "center"
+          }}
+        >
           {!running && !gameOver && (
-            <div className="pointer-events-auto bg-black/50 text-white px-4 py-2 rounded-lg text-sm">Paused</div>
+            <div style={{ pointerEvents: "auto", background: "rgba(0,0,0,0.5)", color: "#fff", padding: "8px 12px", borderRadius: 8, fontSize: 13 }}>
+              Paused
+            </div>
           )}
           {gameOver && (
-            <div className="pointer-events-auto bg-black/60 text-white px-4 py-3 rounded-lg text-center">
-              <div className="text-base font-semibold mb-1">Game Over</div>
-              <div className="text-xs opacity-80 mb-2">Press Enter to restart</div>
+            <div style={{ pointerEvents: "auto", background: "rgba(0,0,0,0.6)", color: "#fff", padding: "12px 14px", borderRadius: 10, textAlign: "center" }}>
+              <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 6 }}>Game Over</div>
+              <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 8 }}>Press Enter to restart</div>
               <button
-                className="pointer-events-auto bg-white text-black rounded-md px-3 py-1 text-sm"
                 onClick={reset}
-              >Restart</button>
+                style={{ background: "#fff", color: "#000", borderRadius: 6, padding: "6px 10px", fontSize: 13, cursor: "pointer" }}
+              >
+                Restart
+              </button>
             </div>
           )}
         </div>
       </div>
 
-      <div className="flex gap-2">
-        <button className="px-3 py-1 rounded-md text-sm border" onClick={() => setRunning((r) => !r)}>
+      <div style={{ display: "flex", gap: 8 }}>
+        <button onClick={() => setRunning(r => !r)} style={btnStyle}>
           {running ? "Pause" : "Resume"}
         </button>
-        <button className="px-3 py-1 rounded-md text-sm border" onClick={reset}>Reset</button>
-        <button className="px-3 py-1 rounded-md text-sm border" onClick={() => setTickMs((ms) => Math.max(60, ms - 10))}>Faster</button>
-        <button className="px-3 py-1 rounded-md text-sm border" onClick={() => setTickMs((ms) => Math.min(300, ms + 10))}>Slower</button>
+        <button onClick={reset} style={btnStyle}>Reset</button>
+        <button onClick={() => setTickMs(ms => Math.max(60, ms - 10))} style={btnStyle}>Faster</button>
+        <button onClick={() => setTickMs(ms => Math.min(300, ms + 10))} style={btnStyle}>Slower</button>
       </div>
 
-      {/* <p className="text-xs opacity-70">Controls: Arrow/WASD, Enter=restart, Space=pause. Swipe on mobile.</p> */}
+      <p style={{ fontSize: 12, opacity: 0.7 }}>
+        Controls: Arrow/WASD, Space=pause, Enter=restart. Swipe on mobile.
+      </p>
     </div>
   );
 }
+
+const btnStyle = {
+  padding: "6px 10px",
+  borderRadius: 6,
+  border: "1px solid #e5e7eb",
+  background: "#fff",
+  fontSize: 13,
+  cursor: "pointer",
+};
