@@ -49,9 +49,30 @@ export default function SnakeGame() {
   const [best, setBest] = useState(() => Number(localStorage.getItem("snake_best") || 0));
   const [gameOver, setGameOver] = useState(false);
 
-  const cellSize = CELL;
-  const width = COLS * cellSize;
-  const height = ROWS * cellSize;
+  const [size, setSize] = useState(() => {
+    const S = Math.floor(Math.min(window.innerWidth, window.innerHeight) * 0.9);
+    const cell = Math.max(12, Math.floor(S / COLS)); // 너무 작아지는 것 방지
+    return { cell, w: COLS * cell, h: ROWS * cell };
+  });
+
+  useEffect(() => {
+    function fit() {
+      const S = Math.floor(Math.min(window.innerWidth, window.innerHeight) * 0.9);
+      const cell = Math.max(12, Math.floor(S / COLS));
+      setSize({ cell, w: COLS * cell, h: ROWS * cell });
+    }
+    fit();
+    window.addEventListener("resize", fit);
+    window.addEventListener("orientationchange", fit);
+    return () => {
+      window.removeEventListener("resize", fit);
+      window.removeEventListener("orientationchange", fit);
+    };
+  }, []);
+
+  const cellSize = size.cell;
+  const width = size.w;
+  const height = size.h;
 
   const reset = useCallback(() => {
     const mid = Math.floor(COLS / 2);
