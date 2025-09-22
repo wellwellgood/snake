@@ -3,7 +3,6 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 // Drop-in React component. No deps. Canvas-based. Keyboard + swipe.
 // Works in CRA, Vite, Next (use client). Export default below.
 
-const cellSize = 22; // px per cell
 const COLS = 22;
 const ROWS = 22;
 const TICK_MS_DEFAULT = 120; // lower = faster
@@ -81,16 +80,6 @@ export default function SnakeGame() {
     b.style.width = "100%";
     b.style.overflow = "hidden";
     useEffect(() => {
-      // lock
-      scrollYRef.current = window.scrollY || 0;
-      const b = document.body;
-      b.style.position = "fixed";
-      b.style.top = `-${scrollYRef.current}px`;
-      b.style.left = "0";
-      b.style.right = "0";
-      b.style.width = "100%";
-      b.style.overflow = "hidden";
-  
       return () => {
         // unlock
         const y = scrollYRef.current;
@@ -105,7 +94,7 @@ export default function SnakeGame() {
       };
     }, []);
 
-  const cellSize = size.cell;
+  const CELL_SIZE = size.cell;
   const width = size.w;
   const height = size.h;
 
