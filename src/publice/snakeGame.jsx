@@ -1,13 +1,17 @@
 // src/snakeGame.jsx
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import Styles from './snakeGame.module.css';
+import Styles from "./snakeGame.module.css";
 
 const COLS = 22;
 const ROWS = 22;
 const TICK_MS_DEFAULT = 120;
 
-function randCell(max) { return Math.floor(Math.random() * max); }
-function same(a, b) { return a.x === b.x && a.y === b.y; }
+function randCell(max) {
+  return Math.floor(Math.random() * max);
+}
+function same(a, b) {
+  return a.x === b.x && a.y === b.y;
+}
 function randomFood(snake) {
   while (true) {
     const f = { x: randCell(COLS), y: randCell(ROWS) };
@@ -15,12 +19,21 @@ function randomFood(snake) {
   }
 }
 
-export default function SnakeGame() {
+export default function SnakeGame({ onGameOver }) {
   const canvasRef = useRef(null);
   const rafRef = useRef(0);
   const lastTickRef = useRef(0);
-  const dprRef = useRef(Math.min(2, typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1));
+  const dprRef = useRef(
+    Math.min(
+      2,
+      typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1
+    )
+  );
   const scrollYRef = useRef(0);
+  const startTsRef = useRef(Date.now());
+  useEffect(() => {
+    startTsRef.current = Date.now();
+  }, []);
 
   // 반응형 셀 크기
   const [size, setSize] = useState(() => {
@@ -32,27 +45,45 @@ export default function SnakeGame() {
   const WIDTH = size.w;
   const HEIGHT = size.h;
 
+  //시작
+  const startGame = useCallback(() => {
+    setStarted(true);
+    setRunning(true);
+  }, []);
+
   // 상태
   const [running, setRunning] = useState(true);
+  const [started, setStarted] = useState(false);
   const [tickMs, setTickMs] = useState(TICK_MS_DEFAULT);
   const [dir, setDir] = useState({ x: 1, y: 0 });
   const [snake, setSnake] = useState(() => {
     const mid = Math.floor(COLS / 2);
-    return [{ x: mid - 1, y: mid }, { x: mid, y: mid }, { x: mid + 1, y: mid }];
+    return [
+      { x: mid - 1, y: mid },
+      { x: mid, y: mid },
+      { x: mid + 1, y: mid },
+    ];
   });
   const [food, setFood] = useState(() => randomFood([]));
   const [score, setScore] = useState(0);
-  const [best, setBest] = useState(() => Number(localStorage.getItem("snake_best") || 0));
+  const [best, setBest] = useState(() =>
+    Number(localStorage.getItem("snake_best") || 0)
+  );
   const [gameOver, setGameOver] = useState(false);
 
   // 리셋
   const reset = useCallback(() => {
     const mid = Math.floor(COLS / 2);
-    setSnake([{ x: mid - 1, y: mid }, { x: mid, y: mid }, { x: mid + 1, y: mid }]);
+    setSnake([
+      { x: mid - 1, y: mid },
+      { x: mid, y: mid },
+      { x: mid + 1, y: mid },
+    ]);
     setDir({ x: 1, y: 0 });
     setFood(randomFood([]));
     setScore(0);
     setTickMs(TICK_MS_DEFAULT);
+    startTsRef.current = Date.now();
     setGameOver(false);
     setRunning(true);
   }, []);
@@ -60,7 +91,9 @@ export default function SnakeGame() {
   // 반응형 리스너
   useEffect(() => {
     function fit() {
-      const S = Math.floor(Math.min(window.innerWidth, window.innerHeight) * 0.9);
+      const S = Math.floor(
+        Math.min(window.innerWidth, window.innerHeight) * 0.9
+      );
       const cell = Math.max(12, Math.floor(S / COLS));
       setSize({ cell, w: COLS * cell, h: ROWS * cell });
       dprRef.current = Math.min(2, window.devicePixelRatio || 1);
@@ -100,12 +133,24 @@ export default function SnakeGame() {
   useEffect(() => {
     function onKey(e) {
       const k = e.key.toLowerCase();
-      if (k === " " || k === "enter") { if (gameOver) reset(); else setRunning(r => !r); return; }
+      if ((k === " " || k === "enter") && !started) {
+        startGame();
+        return;
+      }
+      if (k === " " || k === "enter") {
+        if (gameOver) reset();
+        else if (started) setRunning((r) => !r);
+        return;
+      }
       if (!running) return;
-      if (k === "arrowup" || k === "w") return setDir(d => (d.y === 1 ? d : { x: 0, y: -1 }));
-      if (k === "arrowdown" || k === "s") return setDir(d => (d.y === -1 ? d : { x: 0, y: 1 }));
-      if (k === "arrowleft" || k === "a") return setDir(d => (d.x === 1 ? d : { x: -1, y: 0 }));
-      if (k === "arrowright" || k === "d") return setDir(d => (d.x === -1 ? d : { x: 1, y: 0 }));
+      if (k === "arrowup" || k === "w")
+        return setDir((d) => (d.y === 1 ? d : { x: 0, y: -1 }));
+      if (k === "arrowdown" || k === "s")
+        return setDir((d) => (d.y === -1 ? d : { x: 0, y: 1 }));
+      if (k === "arrowleft" || k === "a")
+        return setDir((d) => (d.x === 1 ? d : { x: -1, y: 0 }));
+      if (k === "arrowright" || k === "d")
+        return setDir((d) => (d.x === -1 ? d : { x: 1, y: 0 }));
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -115,23 +160,44 @@ export default function SnakeGame() {
   useEffect(() => {
     const el = canvasRef.current;
     if (!el) return;
-    let sx = 0, sy = 0;
+    let sx = 0,
+      sy = 0;
     function start(ev) {
-      const t = ev.touches?.[0]; if (!t) return;
-      sx = t.clientX; sy = t.clientY;
+      const t = ev.touches?.[0];
+      if (!t) return;
+      sx = t.clientX;
+      sy = t.clientY;
     }
     function move(ev) {
       if (!running) return;
-      const t = ev.touches?.[0]; if (!t) return;
+      const t = ev.touches?.[0];
+      if (!t) return;
       const dx = t.clientX - sx;
       const dy = t.clientY - sy;
       if (Math.abs(dx) + Math.abs(dy) < 18) return;
       if (Math.abs(dx) > Math.abs(dy)) {
-        setDir(d => (dx > 0 ? (d.x === -1 ? d : { x: 1, y: 0 }) : (d.x === 1 ? d : { x: -1, y: 0 })));
+        setDir((d) =>
+          dx > 0
+            ? d.x === -1
+              ? d
+              : { x: 1, y: 0 }
+            : d.x === 1
+            ? d
+            : { x: -1, y: 0 }
+        );
       } else {
-        setDir(d => (dy > 0 ? (d.y === -1 ? d : { x: 0, y: 1 }) : (d.y === 1 ? d : { x: 0, y: -1 })));
+        setDir((d) =>
+          dy > 0
+            ? d.y === -1
+              ? d
+              : { x: 0, y: 1 }
+            : d.y === 1
+            ? d
+            : { x: 0, y: -1 }
+        );
       }
-      sx = t.clientX; sy = t.clientY;
+      sx = t.clientX;
+      sy = t.clientY;
     }
     el.addEventListener("touchstart", start, { passive: true });
     el.addEventListener("touchmove", move, { passive: true });
@@ -143,14 +209,22 @@ export default function SnakeGame() {
 
   // 한 틱 진행
   const step = useCallback(() => {
-    setSnake(prev => {
+    setSnake((prev) => {
       const head = prev[prev.length - 1];
-      const nx = head.x + dir.x, ny = head.y + dir.y;
+      const nx = head.x + dir.x,
+        ny = head.y + dir.y;
 
       // 충돌
-      if (nx < 0 || ny < 0 || nx >= COLS || ny >= ROWS || prev.some(p => p.x === nx && p.y === ny)) {
-        setGameOver(true); setRunning(false);
-        setBest(b => {
+      if (
+        nx < 0 ||
+        ny < 0 ||
+        nx >= COLS ||
+        ny >= ROWS ||
+        prev.some((p) => p.x === nx && p.y === ny)
+      ) {
+        setGameOver(true);
+        setRunning(false);
+        setBest((b) => {
           const nb = Math.max(b, score);
           localStorage.setItem("snake_best", String(nb));
           return nb;
@@ -165,7 +239,7 @@ export default function SnakeGame() {
         const newScore = score + 1;
         setScore(newScore);
         setFood(randomFood(next));
-        setTickMs(ms => (((newScore) % 4 === 0 && ms > 60) ? ms - 6 : ms));
+        setTickMs((ms) => (newScore % 4 === 0 && ms > 60 ? ms - 6 : ms));
         return next;
       }
 
@@ -176,14 +250,17 @@ export default function SnakeGame() {
   }, [dir, food, score]);
 
   // 루프
-  const loop = useCallback((t) => {
-    if (!running || gameOver) return;
-    if (t - lastTickRef.current >= tickMs) {
-      lastTickRef.current = t;
-      step();
-    }
-    rafRef.current = requestAnimationFrame(loop);
-  }, [tickMs, running, gameOver, step]);
+  const loop = useCallback(
+    (t) => {
+      if (!started || !running || gameOver) return;
+      if (t - lastTickRef.current >= tickMs) {
+        lastTickRef.current = t;
+        step();
+      }
+      rafRef.current = requestAnimationFrame(loop);
+    },
+    [tickMs, running, gameOver, step]
+  );
 
   useEffect(() => {
     cancelAnimationFrame(rafRef.current);
@@ -193,7 +270,9 @@ export default function SnakeGame() {
 
   // 탭 비가시성 시 일시정지
   useEffect(() => {
-    function vis() { if (document.hidden) setRunning(false); }
+    function vis() {
+      if (document.hidden) setRunning(false);
+    }
     document.addEventListener("visibilitychange", vis);
     return () => document.removeEventListener("visibilitychange", vis);
   }, []);
@@ -239,7 +318,7 @@ export default function SnakeGame() {
     // 스네이크
     for (let i = 0; i < snake.length; i++) {
       const s = snake[i];
-      const isHead = i === snake.length ;
+      const isHead = i === snake.length - 1;
       ctx.fillStyle = isHead ? "#E9F711" : "#E9F711";
       const pad = isHead ? 1 : 1;
       ctx.fillRect(
@@ -260,9 +339,18 @@ export default function SnakeGame() {
     ctx.fill();
   }, [snake, food, CELL_SIZE, WIDTH, HEIGHT]);
 
+  useEffect(() => {
+    if (!gameOver) return;
+    onGameOver?.({
+      score,
+      durationMs: Date.now() - startTsRef.current,
+      when: new Date().toISOString(),
+    });
+  }, [gameOver, score, onGameOver]);
+
   return (
     <div
-    className={Styles.snakeGame}
+      className={Styles.snakeGame}
       style={{
         width: "100%",
         minHeight: "100dvh",
@@ -276,10 +364,16 @@ export default function SnakeGame() {
       }}
     >
       <h1 style={{ fontSize: 18, fontWeight: 600 }}>Snake</h1>
-      <div style={{ display: "flex", gap: 12, fontSize: 13 }}>
-        <span>Score: <b>{score}</b></span>
-        <span>Best: <b>{best}</b></span>
-        <span>Speed: <b>{Math.round(1000 / tickMs)} fps</b></span>
+      <div style={{ display: "flex", gap: 12, fontSize: 12 }}>
+        <span>
+          Score: <b>{score}</b>
+        </span>
+        <span>
+          Best: <b>{best}</b>
+        </span>
+        <span>
+          Speed: <b>{Math.round(1000 / tickMs)} fps</b>
+        </span>
       </div>
 
       <div
@@ -287,33 +381,87 @@ export default function SnakeGame() {
           position: "relative",
           boxShadow: "0 10px 30px rgba(0,0,0,0.35)",
           borderRadius: 12,
-          border:"1px solid #ffffff"
+          border: "1px solid #ffffff",
         }}
       >
         <canvas
           ref={canvasRef}
-          style={{ background: "#0b1020", borderRadius: 16, imageRendering: "pixelated", touchAction: "none" }}
+          style={{
+            background: "#0b1020",
+            borderRadius: 16,
+            imageRendering: "pixelated",
+            touchAction: "none",
+          }}
         />
 
         {/* 오버레이 */}
         <div
           style={{
-            position: "absolute", inset: 0, pointerEvents: "none",
-            display: "flex", alignItems: "center", justifyContent: "center"
+            position: "absolute",
+            inset: 0,
+            pointerEvents: "none",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
           }}
         >
+          {!started && (
+            <button
+              onClick={startGame}
+              onTouchStart={startGame}
+              style={{
+                pointerEvents: "auto",
+                padding: "10px 16px",
+                borderRadius: 10,
+                background: "#fff",
+                fontSize: 14,
+                cursor: "pointer",
+              }}
+            >
+              Play
+            </button>
+          )}
           {!running && !gameOver && (
-            <div style={{ pointerEvents: "auto", background: "rgba(0,0,0,0.5)", color: "#fff", padding: "8px 12px", borderRadius: 8, fontSize: 13 }}>
+            <div
+              style={{
+                pointerEvents: "auto",
+                background: "rgba(0,0,0,0.5)",
+                color: "#fff",
+                padding: "8px 12px",
+                borderRadius: 8,
+                fontSize: 13,
+              }}
+            >
               Paused
             </div>
           )}
           {gameOver && (
-            <div style={{ pointerEvents: "auto", background: "rgba(0,0,0,0.6)", color: "#fff", padding: "12px 14px", borderRadius: 10, textAlign: "center" }}>
-              <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 6 }}>Game Over</div>
-              <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 8 }}>Press Enter to restart</div>
+            <div
+              style={{
+                pointerEvents: "auto",
+                background: "rgba(0,0,0,0.6)",
+                color: "#fff",
+                padding: "12px 14px",
+                borderRadius: 10,
+                textAlign: "center",
+              }}
+            >
+              <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 6 }}>
+                Game Over
+              </div>
+              <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 8 }}>
+                Press Enter to restart
+              </div>
               <button
                 onClick={reset}
-                style={{ background: "#fff", color: "#000", borderRadius: 6, padding: "6px 10px", fontSize: 13, cursor: "pointer" }}
+                style={{
+                  background: "#fff",
+                  color: "#000",
+                  borderRadius: 6,
+                  padding: "6px 10px",
+                  fontSize: 13,
+                  cursor: "pointer",
+                }}
               >
                 Restart
               </button>
@@ -323,12 +471,24 @@ export default function SnakeGame() {
       </div>
 
       <div style={{ display: "flex", gap: 8 }}>
-        <button onClick={() => setRunning(r => !r)} style={btnStyle}>
+        <button onClick={() => setRunning((r) => !r)} style={btnStyle}>
           {running ? "Pause" : "Resume"}
         </button>
-        <button onClick={reset} style={btnStyle}>Reset</button>
-        <button onClick={() => setTickMs(ms => Math.max(60, ms - 10))} style={btnStyle}>Faster</button>
-        <button onClick={() => setTickMs(ms => Math.min(300, ms + 10))} style={btnStyle}>Slower</button>
+        <button onClick={reset} style={btnStyle}>
+          Reset
+        </button>
+        <button
+          onClick={() => setTickMs((ms) => Math.max(60, ms - 10))}
+          style={btnStyle}
+        >
+          Faster
+        </button>
+        <button
+          onClick={() => setTickMs((ms) => Math.min(300, ms + 10))}
+          style={btnStyle}
+        >
+          Slower
+        </button>
       </div>
     </div>
   );

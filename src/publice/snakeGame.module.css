@@ -14,4 +14,6 @@
     background: #000;
     color: #fff;
     font-family: "Press Start 2P", system-ui;
+    font-display:swap;
+    font-size: 12px;
 }
