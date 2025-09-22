@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 // Drop-in React component. No deps. Canvas-based. Keyboard + swipe.
 // Works in CRA, Vite, Next (use client). Export default below.
 
-const CELL = 22; // px per cell
+const cellSize = 22; // px per cell
 const COLS = 22;
 const ROWS = 22;
 const TICK_MS_DEFAULT = 120; // lower = faster
@@ -32,6 +32,7 @@ export default function SnakeGame() {
   const canvasRef = useRef(null);
   const rafRef = useRef(0);
   const lastTickRef = useRef(0);
+  const dprRef = useRef(Math.min(2, window.devicePixelRatio || 1));
 
   const [running, setRunning] = useState(true);
   const [tickMs, setTickMs] = useState(TICK_MS_DEFAULT);
@@ -207,12 +208,21 @@ export default function SnakeGame() {
     const ctx = c?.getContext("2d");
     if (!ctx) return;
 
+    const dpr = dprRef.current;
+    if (c.width !== width * dpr || c.height !== height * dpr) {
+      c.width = width * dpr;
+      c.height = height * dpr;
+      c.style.width = `${width}px`;
+      c.style.height = `${height}px`;
+    }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
     // background
     ctx.fillStyle = "#0b1020";
     ctx.fillRect(0, 0, width, height);
 
     // grid glow
-    // ctx.strokeStyle = "#101a3a";
+    ctx.strokeStyle = "#101a3a";
     ctx.lineWidth = 1;
     for (let x = 0; x <= COLS; x++) {
       ctx.beginPath();
@@ -291,7 +301,7 @@ export default function SnakeGame() {
         <button className="px-3 py-1 rounded-md text-sm border" onClick={() => setTickMs((ms) => Math.min(300, ms + 10))}>Slower</button>
       </div>
 
-      <p className="text-xs opacity-70">Controls: Arrow/WASD, Enter=restart, Space=pause. Swipe on mobile.</p>
+      {/* <p className="text-xs opacity-70">Controls: Arrow/WASD, Enter=restart, Space=pause. Swipe on mobile.</p> */}
     </div>
   );
 }
