@@ -417,7 +417,7 @@ export default function SnakeGame({ onGameOver }) {
           }}
         >
           {!started && (
-            <div style={{width:104, height:54, border: "2px solid #E7FFA9", borderRadius:100 }}>
+            <div style={{width:104, height:54, border: "2px solid #CCFBEA", borderRadius:100 }}>
               <button
               onClick={startGame}
               onTouchStart={startGame}
@@ -431,7 +431,7 @@ export default function SnakeGame({ onGameOver }) {
                 fontWeight: "900",
                 cursor: "pointer",
                 color: "#0A134A",
-                background: "#B7F34E",
+                background: "#8EF5C5",
               }}
             >
               ▶
