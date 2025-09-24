@@ -432,8 +432,6 @@ export default function SnakeGame({ onGameOver }) {
                 cursor: "pointer",
                 color: "#0A134A",
                 background: "#B7F34E",
-                // letterSpacing: 2,
-                // border: "2px solid #fff",
               }}
             >
               ▶
