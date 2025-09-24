@@ -22,14 +22,14 @@ export default function App() {
     localStorage.setItem("snake_name", name);
   }, [name]);
 
+  const nameRef = useRef(name);
+  useEffect(() => { nameRef.current = name; }, [name]);
   const onGameOver = useCallback((rec) => {
-    console.log('GAME OVER REC', rec);
-    // rec: { score, durationMs, when } from SnakeGame
-    const withName = { ...rec, name: name.toUpperCase().slice(0, 12) || "PLAYER" };
-    const top = addScore(withName);
+    const fixedName = nameRef.current?.toUpperCase().slice(0, 12) || "PLAYER";
+    const top = addScore({ ...rec, name: fixedName });
     setRecords(top);
-    setOpen(true); // 게임 끝나면 자동으로 보드 열기
-  }, [name]);
+    setOpen(true);
+  }, []); // ← 의존성 없음
 
   useEffect(() => {
     if (open) {

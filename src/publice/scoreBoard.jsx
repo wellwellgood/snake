@@ -95,7 +95,6 @@ export default function Scoreboard({
                   <b>{r.score}</b>
                 </td>
                 <td style={td}>{fmtMs(r.durationMs)}</td>
-                <td style={td}>{new Date(r.when).toLocaleString()}</td>
               </tr>
             ))}
           </tbody>

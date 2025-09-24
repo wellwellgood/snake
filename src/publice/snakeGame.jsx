@@ -31,7 +31,9 @@ export default function SnakeGame({ onGameOver }) {
   );
   const scrollYRef = useRef(0);
   const startTsRef = useRef(Date.now());
-  useEffect(()=>{ startTsRef.current = Date.now(); }, []);
+  useEffect(() => {
+    startTsRef.current = Date.now();
+  }, []);
 
   // 반응형 셀 크기
   const [size, setSize] = useState(() => {
@@ -153,7 +155,6 @@ export default function SnakeGame({ onGameOver }) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [running, reset, gameOver, startGame, started]);
-
 
   // 스와이프 터치
   useEffect(() => {
@@ -338,14 +339,24 @@ export default function SnakeGame({ onGameOver }) {
     ctx.fill();
   }, [snake, food, CELL_SIZE, WIDTH, HEIGHT]);
 
+  const onGameOverRef = useRef(onGameOver);
+  useEffect(() => { onGameOverRef.current = onGameOver; }, [onGameOver]);
+  const reportedRef = useRef(false);
+
   useEffect(() => {
-    if (!gameOver) return;
-    onGameOver?.({
+    if (!gameOver || reportedRef.current) return;
+    onGameOverRef.current?.({
       score,
       durationMs: Date.now() - startTsRef.current,
       when: new Date().toISOString(),
     });
-  }, [gameOver, score, onGameOver]);
+    reportedRef.current = true;
+  }, [gameOver, score]);
+
+  // 새 게임 시작할 때 리셋
+  useEffect(() => {
+    if (started && !gameOver) reportedRef.current = false;
+  }, [started, gameOver]);
 
   return (
     <div
@@ -416,7 +427,7 @@ export default function SnakeGame({ onGameOver }) {
                 borderRadius: 100,
                 fontSize: 18,
                 cursor: "pointer",
-                background: "#ffc0cb"
+                background: "#ffc0cb",
               }}
             >
               Play
