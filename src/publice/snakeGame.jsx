@@ -416,22 +416,24 @@ export default function SnakeGame({ onGameOver }) {
           }}
         >
           {!started && (
-            <button
+            <div style={{width:152, height:52, border: "1px solid #ebdf41", borderRadius:100 }}>
+              <button
               onClick={startGame}
               onTouchStart={startGame}
               style={{
-                width: 80,
-                height: 80,
+                position: "absolute",
+                width: 150,
+                height: 50,
                 pointerEvents: "auto",
-                // padding: "16px 16px",
                 borderRadius: 100,
                 fontSize: 18,
                 cursor: "pointer",
-                background: "#ffc0cb",
+                background: "linear-gradient(-45deg,#4279ef, #e9f1fb,#4279ef )",
               }}
             >
               Play
             </button>
+            </div>
           )}
           {!running && !gameOver && (
             <div
