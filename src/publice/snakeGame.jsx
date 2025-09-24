@@ -31,9 +31,7 @@ export default function SnakeGame({ onGameOver }) {
   );
   const scrollYRef = useRef(0);
   const startTsRef = useRef(Date.now());
-  useEffect(() => {
-    startTsRef.current = Date.now();
-  }, []);
+  useEffect(()=>{ startTsRef.current = Date.now(); }, []);
 
   // 반응형 셀 크기
   const [size, setSize] = useState(() => {
@@ -410,12 +408,15 @@ export default function SnakeGame({ onGameOver }) {
               onClick={startGame}
               onTouchStart={startGame}
               style={{
+                width: 80,
+                height: 80,
                 pointerEvents: "auto",
-                padding: "10px 16px",
-                borderRadius: 10,
+                // padding: "16px 16px",
+                borderRadius: 100,
                 background: "#fff",
-                fontSize: 14,
+                fontSize: 18,
                 cursor: "pointer",
+                background: "#ffc0cb",
               }}
             >
               Play

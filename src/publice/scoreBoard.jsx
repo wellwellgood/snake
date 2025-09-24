@@ -71,7 +71,6 @@ export default function Scoreboard({
               <th style={th}>Name</th>
               <th style={th}>Score</th>
               <th style={th}>Time</th>
-              <th style={th}>When</th>
             </tr>
           </thead>
           <tbody>
