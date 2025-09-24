@@ -413,27 +413,30 @@ export default function SnakeGame({ onGameOver }) {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
+            flexDirection: "column",
           }}
         >
           {!started && (
-            <div style={{width:154, height:54, border: "2px solid #fdd701", borderRadius:100 }}>
+            <div style={{width:104, height:54, border: "2px solid #E7FFA9", borderRadius:100 }}>
               <button
               onClick={startGame}
               onTouchStart={startGame}
               style={{
                 position: "absolute",
-                width: 150,
+                width: 100,
                 height: 50,
                 pointerEvents: "auto",
                 borderRadius: 100,
                 fontSize: 18,
                 fontWeight: "900",
                 cursor: "pointer",
-                color: "#fff",
-                background: "#4279ef",
+                color: "#0A134A",
+                background: "#B7F34E",
+                // letterSpacing: 2,
+                // border: "2px solid #fff",
               }}
             >
-              플레이
+              ▶
             </button>
             </div>
           )}
