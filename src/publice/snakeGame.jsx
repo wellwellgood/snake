@@ -152,7 +152,8 @@ export default function SnakeGame({ onGameOver }) {
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [running, reset, gameOver]);
+  }, [running, reset, gameOver, startGame, started]);
+
 
   // 스와이프 터치
   useEffect(() => {
@@ -257,7 +258,7 @@ export default function SnakeGame({ onGameOver }) {
       }
       rafRef.current = requestAnimationFrame(loop);
     },
-    [tickMs, running, gameOver, step]
+    [tickMs, running, gameOver, started, step]
   );
 
   useEffect(() => {
@@ -413,10 +414,9 @@ export default function SnakeGame({ onGameOver }) {
                 pointerEvents: "auto",
                 // padding: "16px 16px",
                 borderRadius: 100,
-                background: "#fff",
                 fontSize: 18,
                 cursor: "pointer",
-                background: "#ffc0cb",
+                background: "#ffc0cb"
               }}
             >
               Play

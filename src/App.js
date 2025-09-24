@@ -1,5 +1,5 @@
 // src/App.jsx
-import React, { useCallback, useMemo, useState, useEffect, useRef } from "react";
+import React, { useCallback, useState, useEffect, useRef } from "react";
 import SnakeGame from "./publice/snakeGame.jsx";
 import { addScore, loadScores, clearScores } from "./publice/scoreStorage.jsx";
 import Scoreboard from "./publice/scoreBoard.jsx";
@@ -41,8 +41,6 @@ export default function App() {
     clearScores();
     setRecords([]);
   }, []);
-
-  const best = useMemo(() => (records[0]?.score ?? 0), [records]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: 16 }}>
