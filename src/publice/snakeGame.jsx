@@ -1,4 +1,3 @@
-// src/snakeGame.jsx
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import Styles from "./snakeGame.module.css";
 
@@ -19,7 +18,11 @@ function randomFood(snake) {
   }
 }
 
-export default function SnakeGame({ onGameOver }) {
+export default function SnakeGame({
+  onGameOver,
+  hideStartUI = false,
+  autoStartTick = 0,
+}) {
   const canvasRef = useRef(null);
   const rafRef = useRef(0);
   const lastTickRef = useRef(0);
@@ -45,13 +48,7 @@ export default function SnakeGame({ onGameOver }) {
   const WIDTH = size.w;
   const HEIGHT = size.h;
 
-  //시작
-  const startGame = useCallback(() => {
-    setStarted(true);
-    setRunning(true);
-  }, []);
-
-  // 상태
+  // ===== 상태를 먼저 선언 =====
   const [running, setRunning] = useState(true);
   const [started, setStarted] = useState(false);
   const [tickMs, setTickMs] = useState(TICK_MS_DEFAULT);
@@ -71,7 +68,11 @@ export default function SnakeGame({ onGameOver }) {
   );
   const [gameOver, setGameOver] = useState(false);
 
-  // 리셋
+  // 시작/리셋 콜백
+  const startGame = useCallback(() => {
+    setStarted(true);
+    setRunning(true);
+  }, []);
   const reset = useCallback(() => {
     const mid = Math.floor(COLS / 2);
     setSnake([
@@ -87,6 +88,11 @@ export default function SnakeGame({ onGameOver }) {
     setGameOver(false);
     setRunning(true);
   }, []);
+
+  // 카운트다운 종료 신호 오면 자동 시작
+  useEffect(() => {
+    if (!started && autoStartTick > 0) startGame();
+  }, [autoStartTick, started, startGame]);
 
   // 반응형 리스너
   useEffect(() => {
@@ -129,7 +135,7 @@ export default function SnakeGame({ onGameOver }) {
     };
   }, []);
 
-  // 키보드 입력
+  // 키보드
   useEffect(() => {
     function onKey(e) {
       const k = e.key.toLowerCase();
@@ -156,7 +162,7 @@ export default function SnakeGame({ onGameOver }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [running, reset, gameOver, startGame, started]);
 
-  // 스와이프 터치
+  // 스와이프
   useEffect(() => {
     const el = canvasRef.current;
     if (!el) return;
@@ -172,8 +178,8 @@ export default function SnakeGame({ onGameOver }) {
       if (!running) return;
       const t = ev.touches?.[0];
       if (!t) return;
-      const dx = t.clientX - sx;
-      const dy = t.clientY - sy;
+      const dx = t.clientX - sx,
+        dy = t.clientY - sy;
       if (Math.abs(dx) + Math.abs(dy) < 18) return;
       if (Math.abs(dx) > Math.abs(dy)) {
         setDir((d) =>
@@ -196,8 +202,10 @@ export default function SnakeGame({ onGameOver }) {
             : { x: 0, y: -1 }
         );
       }
-      sx = t.clientX;
-      sy = t.clientY;
+      const t2 = ev.touches?.[0];
+      if (!t2) return;
+      sx = t2.clientX;
+      sy = t2.clientY;
     }
     el.addEventListener("touchstart", start, { passive: true });
     el.addEventListener("touchmove", move, { passive: true });
@@ -207,7 +215,7 @@ export default function SnakeGame({ onGameOver }) {
     };
   }, [running]);
 
-  // 한 틱 진행
+  // 한 틱
   const step = useCallback(() => {
     setSnake((prev) => {
       const head = prev[prev.length - 1];
@@ -282,11 +290,9 @@ export default function SnakeGame({ onGameOver }) {
     const c = canvasRef.current;
     const ctx = c?.getContext("2d");
     if (!ctx) return;
-
-    // DPR 스케일링
     const dpr = dprRef.current;
-    const bw = Math.floor(WIDTH * dpr);
-    const bh = Math.floor(HEIGHT * dpr);
+    const bw = Math.floor(WIDTH * dpr),
+      bh = Math.floor(HEIGHT * dpr);
     if (c.width !== bw || c.height !== bh) {
       c.width = bw;
       c.height = bh;
@@ -339,8 +345,11 @@ export default function SnakeGame({ onGameOver }) {
     ctx.fill();
   }, [snake, food, CELL_SIZE, WIDTH, HEIGHT]);
 
+  // onGameOver 단 한번
   const onGameOverRef = useRef(onGameOver);
-  useEffect(() => { onGameOverRef.current = onGameOver; }, [onGameOver]);
+  useEffect(() => {
+    onGameOverRef.current = onGameOver;
+  }, [onGameOver]);
   const reportedRef = useRef(false);
 
   useEffect(() => {
@@ -353,7 +362,7 @@ export default function SnakeGame({ onGameOver }) {
     reportedRef.current = true;
   }, [gameOver, score]);
 
-  // 새 게임 시작할 때 리셋
+  // 새 게임 시작하면 리셋 플래그
   useEffect(() => {
     if (started && !gameOver) reportedRef.current = false;
   }, [started, gameOver]);
@@ -416,26 +425,33 @@ export default function SnakeGame({ onGameOver }) {
             flexDirection: "column",
           }}
         >
-          {!started && (
-            <div style={{width:104, height:54, border: "2px solid #CCFBEA", borderRadius:100 }}>
-              <button
-              onClick={startGame}
-              onTouchStart={startGame}
+          {!hideStartUI && !started && !running && (
+            <div
               style={{
-                position: "absolute",
-                width: 100,
-                height: 50,
-                pointerEvents: "auto",
+                width: 104,
+                height: 54,
+                border: "2px solid #CCFBEA",
                 borderRadius: 100,
-                fontSize: 18,
-                fontWeight: "900",
-                cursor: "pointer",
-                color: "#0A134A",
-                background: "#8EF5C5",
               }}
             >
-              ▶
-            </button>
+              <button
+                onClick={startGame}
+                onTouchStart={startGame}
+                style={{
+                  position: "absolute",
+                  width: 100,
+                  height: 50,
+                  pointerEvents: "auto",
+                  borderRadius: 100,
+                  fontSize: 18,
+                  fontWeight: 900,
+                  cursor: "pointer",
+                  color: "#0A134A",
+                  background: "#8EF5C5",
+                }}
+              >
+                ▶
+              </button>
             </div>
           )}
           {!running && !gameOver && (
